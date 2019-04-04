@@ -1,0 +1,95 @@
+From 85369e2aa4faa6d1d9baec414561ad0dfe852eaf Mon Sep 17 00:00:00 2001
+From: Stefan Sonski <s.sonski@gmail.com>
+Date: Tue, 27 Mar 2018 20:01:59 +0200
+Subject: [PATCH] nativesdk-qtbase Enable objcopy for qmake
+
+Enable objcopy for qmake to support separate_debug_info flag for cross-compiled
+applications in nativesdk-qtbase.
+
+Signed-off-by: Stefan Sonski <s.sonski@gmail.com>
+Signed-off-by: Martin Jansa <Martin.Jansa@gmail.com>
+---
+ classes/qmake5_base.bbclass                   |  2 ++
+ recipes-qt/qt5/nativesdk-qtbase_git.bb        |  2 ++
+ ...13-Add-objcopy-to-linux-oe-gplatform.patch | 32 +++++++++++++++++++
+ 3 files changed, 36 insertions(+)
+ create mode 100644 recipes-qt/qt5/qtbase/0013-Add-objcopy-to-linux-oe-gplatform.patch
+
+diff --git a/classes/qmake5_base.bbclass b/classes/qmake5_base.bbclass
+index 8f1d143..bfde1d2 100644
+--- a/classes/qmake5_base.bbclass
++++ b/classes/qmake5_base.bbclass
+@@ -28,6 +28,7 @@ EXTRA_OEMAKE = " \
+     OE_QMAKE_LINK='${OE_QMAKE_LINK}' \
+     OE_QMAKE_LDFLAGS='${OE_QMAKE_LDFLAGS}' \
+     OE_QMAKE_AR='${OE_QMAKE_AR}' \
++    OE_QMAKE_OBJCOPY='${OE_QMAKE_OBJCOPY}' \
+     OE_QMAKE_STRIP='${OE_QMAKE_STRIP}' \
+     OE_QMAKE_INCDIR_QT='${STAGING_DIR_TARGET}/${OE_QMAKE_PATH_HEADERS}' \
+ "
+@@ -41,6 +42,7 @@ export OE_QMAKE_CXXFLAGS = "${CXXFLAGS}"
+ export OE_QMAKE_LINK = "${CXX}"
+ export OE_QMAKE_LDFLAGS = "${LDFLAGS}"
+ export OE_QMAKE_AR = "${AR}"
++export OE_QMAKE_OBJCOPY = "${OBJCOPY}"
+ export OE_QMAKE_STRIP = "echo"
+ 
+ # qmake reads if from shell environment
+diff --git a/recipes-qt/qt5/nativesdk-qtbase_git.bb b/recipes-qt/qt5/nativesdk-qtbase_git.bb
+index 6985058..e3d912f 100644
+--- a/recipes-qt/qt5/nativesdk-qtbase_git.bb
++++ b/recipes-qt/qt5/nativesdk-qtbase_git.bb
+@@ -38,6 +38,7 @@ SRC_URI += "\
+     file://0010-linux-clang-Invert-conditional-for-defining-QT_SOCKL.patch \
+     file://0011-tst_qlocale-Enable-QT_USE_FENV-only-on-glibc.patch \
+     file://0012-mkspecs-common-gcc-base.conf-Use-I-instead-of-isyste.patch \
++    file://0013-Add-objcopy-to-linux-oe-gplatform.patch \
+ "
+ 
+ # common for qtbase-native and nativesdk-qtbase
+@@ -189,6 +190,7 @@ fakeroot do_generate_qt_environment_file() {
+     echo 'export OE_QMAKE_CXX="$CXX"' >> $script
+     echo 'export OE_QMAKE_LINK="$CXX"' >> $script
+     echo 'export OE_QMAKE_AR=$AR' >> $script
++    echo 'export OE_QMAKE_OBJCOPY=$OBJCOPY' >> $script
+     echo 'export OE_QMAKE_STRIP=$STRIP' >> $script
+     echo 'export QT_CONF_PATH=${OE_QMAKE_PATH_HOST_BINS}/qt.conf' >> $script
+     echo 'export OE_QMAKE_LIBDIR_QT=`qmake -query QT_INSTALL_LIBS`' >> $script
+diff --git a/recipes-qt/qt5/qtbase/0013-Add-objcopy-to-linux-oe-gplatform.patch b/recipes-qt/qt5/qtbase/0013-Add-objcopy-to-linux-oe-gplatform.patch
+new file mode 100644
+index 0000000..fcbce51
+--- /dev/null
++++ b/recipes-qt/qt5/qtbase/0013-Add-objcopy-to-linux-oe-gplatform.patch
+@@ -0,0 +1,32 @@
++From 487c7a7704106eda0cfea9d9652cb42b9889b5e2 Mon Sep 17 00:00:00 2001
++From: Stefan Sonski <s.sonski@gmail.com>
++Date: Tue, 27 Mar 2018 19:38:13 +0200
++Subject: [PATCH] Add objcopy to linux oe gplatform
++
++---
++ mkspecs/linux-oe-g++/qmake.conf | 3 +--
++ 1 file changed, 1 insertion(+), 2 deletions(-)
++
++diff --git a/mkspecs/linux-oe-g++/qmake.conf b/mkspecs/linux-oe-g++/qmake.conf
++index 30d31ed16d..740f3bab9d 100644
++--- a/mkspecs/linux-oe-g++/qmake.conf
+++++ b/mkspecs/linux-oe-g++/qmake.conf
++@@ -10,6 +10,7 @@ include(../common/linux.conf)
++ 
++ # QMAKE_<TOOL> (moc, uic, rcc) are gone, overwrite only ar and strip
++ QMAKE_AR              = $$(OE_QMAKE_AR) cqs
+++QMAKE_OBJCOPY         = $$(OE_QMAKE_OBJCOPY)
++ QMAKE_STRIP           = $$(OE_QMAKE_STRIP)
++ 
++ include(../common/gcc-base-unix.conf)
++@@ -36,7 +37,5 @@ QMAKE_LINK_C_SHLIB = $$(OE_QMAKE_LINK)
++ # for the SDK
++ isEmpty(QMAKE_QT_CONFIG):QMAKE_QT_CONFIG = $$(OE_QMAKE_QT_CONFIG)
++ 
++-include(../oe-device-extra.pri)
++-
++ load(device_config)
++ load(qt_config)
++-- 
++2.16.2
++
